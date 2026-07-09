@@ -83,39 +83,35 @@ export default function SystemsSection({
 			setHasChanges(true);
 
 			// Сохранить на VPS через 1 секунду после последнего изменения
+			const dataToSave = {
+				...objects.find((o) => o.id === objectId),
+				systemsData: {
+					...(objects.find((o) => o.id === objectId)?.systemsData || {}),
+					[systemName]: {
+						...(objects.find((o) => o.id === objectId)?.systemsData?.[systemName] || {}),
+						[field]: value,
+					},
+				},
+			};
+			const serverId = objects.find((o) => o.id === objectId)?._serverId || objects.find((o) => o.id === objectId)?.id;
+			
 			if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
 			saveTimeoutRef.current = setTimeout(() => {
-				const obj = objects.find((o) => o.id === objectId);
-				if (obj) {
-					const { id, _serverId, ...data } = {
-						...obj,
-						systemsData: {
-							...obj.systemsData,
-							[systemName]: {
-								...getSystemData(obj, systemName),
-								[field]: value,
-							},
-						},
-					};
-					const token = localStorage.getItem("authToken");
-					fetch(`https://firebaze.ru/api/objects/${_serverId || obj.id}`, {
-						method: "PUT",
-						headers: {
-							"Content-Type": "application/json",
-							Authorization: `Bearer ${token}`,
-						},
-						body: JSON.stringify(data),
-					})
-						.then((res) => {
-							if (res.ok) {
-								console.log("Сохранено на VPS:", systemName, field, value);
-							}
-						})
-						.catch((err) => console.error("Ошибка сохранения:", err));
-				}
+				const token = localStorage.getItem("authToken");
+				const { id, ...data } = dataToSave;
+				fetch(`https://firebaze.ru/api/objects/${serverId}`, {
+					method: "PUT",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${token}`,
+					},
+					body: JSON.stringify(data),
+				}).then((res) => {
+					if (res.ok) console.log("Сохранено на VPS:", systemName, field, value);
+				}).catch((err) => console.error("Ошибка сохранения:", err));
 			}, 1000);
 		},
-		[objects, setObjects],
+		[objects],
 	);
 
 	const handleSaveAll = async () => {
