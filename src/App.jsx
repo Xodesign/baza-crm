@@ -710,27 +710,18 @@ function App() {
 	}, []);
 
 	// --- СТЕЙТЫ ВЫЗОВОВ ---
-	const [calls, setCalls] = useState(() => {
-		const saved = localStorage.getItem("demo_calls");
-		return saved ? JSON.parse(saved) : INITIAL_CALLS;
-	});
+	const [calls, setCalls] = useState([]);
 	const [newCallData, setNewCallData] = useState(getEmptyCallForm());
 	const [editingCall, setEditingCall] = useState(null);
 	const [isCallModalOpen, setIsCallModalOpen] = useState(false);
 	const [callFilter, setCallFilter] = useState("all");
 
 	// --- СТЕЙТЫ СИСТЕМ ---
-	const [systems, setSystems] = useState(() => {
-		const saved = localStorage.getItem("demo_systems");
-		return saved ? JSON.parse(saved) : INITIAL_SYSTEMS;
-	});
+	const [systems, setSystems] = useState([]);
 	const [newSystemData, setNewSystemData] = useState(getEmptySystemForm());
 
 	// --- СТЕЙТЫ ПЕРСОНАЛА ---
-	const [staff, setStaff] = useState(() => {
-		const saved = localStorage.getItem("demo_staff");
-		return saved ? JSON.parse(saved) : INITIAL_STAFF;
-	});
+	const [staff, setStaff] = useState([]);
 	const [newStaffData, setNewStaffData] = useState({
 		fullName: "",
 		position: "",
@@ -742,17 +733,11 @@ function App() {
 	});
 
 	// --- СТЕЙТЫ ЗАТРАТ ---
-	const [costs, setCosts] = useState(() => {
-		const saved = localStorage.getItem("demo_costs");
-		return saved ? JSON.parse(saved) : INITIAL_COSTS;
-	});
+	const [costs, setCosts] = useState([]);
 	const [newCostData, setNewCostData] = useState(getEmptyCostForm());
 
 	// --- СТЕЙТЫ ИНСТРУМЕНТА ---
-	const [tools, setTools] = useState(() => {
-		const saved = localStorage.getItem("demo_tools");
-		return saved ? JSON.parse(saved) : INITIAL_TOOLS;
-	});
+	const [tools, setTools] = useState([]);
 	const [newToolData, setNewToolData] = useState(getEmptyToolForm());
 	const [editingTool, setEditingTool] = useState(null); // Инструмент для редактирования в модалке
 	const [isToolModalOpen, setIsToolModalOpen] = useState(false); // Открыта ли модалка
@@ -792,10 +777,7 @@ function App() {
 	}, []);
 
 	// --- СТЕЙТЫ АКТИРОВАНИЯ ---
-	const [activations, setActivations] = useState(() => {
-		const saved = localStorage.getItem("demo_activations");
-		return saved ? JSON.parse(saved) : INITIAL_ACTIVATIONS;
-	});
+	const [activations, setActivations] = useState([]);
 	const [newActivationData, setNewActivationData] = useState(
 		getEmptyActivationForm(),
 	);
@@ -824,10 +806,7 @@ function App() {
 	}, []);
 
 	// --- СТЕЙТЫ ТРАНСПОРТ ---
-	const [transportItems, setTransportItems] = useState(() => {
-		const saved = localStorage.getItem("demo_transport");
-		return saved ? JSON.parse(saved) : INITIAL_TRANSPORT;
-	});
+	const [transportItems, setTransportItems] = useState([]);
 	const [newTransportData, setNewTransportData] = useState(
 		getEmptyTransportForm(),
 	);
@@ -835,17 +814,11 @@ function App() {
 	const [isTransportModalOpen, setIsTransportModalOpen] = useState(false);
 
 	// --- СТЕЙТЫ СЧЕТА ---
-	const [invoices, setInvoices] = useState(() => {
-		const saved = localStorage.getItem("demo_invoices");
-		return saved ? JSON.parse(saved) : INITIAL_INVOICES;
-	});
+	const [invoices, setInvoices] = useState([]);
 	const [newInvoiceData, setNewInvoiceData] = useState(getEmptyInvoiceForm());
 
 	// --- СТЕЙТЫ ВРЕМЯ ---
-	const [timeEntries, setTimeEntries] = useState(() => {
-		const saved = localStorage.getItem("demo_time");
-		return saved ? JSON.parse(saved) : INITIAL_TIME;
-	});
+	const [timeEntries, setTimeEntries] = useState([]);
 	const [newTimeData, setNewTimeData] = useState(getEmptyTimeForm());
 
 	// States для систем времени
@@ -879,10 +852,7 @@ function App() {
 	const [extra] = useState(INITIAL_EXTRA);
 
 	// --- СТЕЙТЫ КОНТАКТОВ ---
-	const [contacts, setContacts] = useState(() => {
-		const saved = localStorage.getItem("demo_contacts");
-		return saved ? JSON.parse(saved) : INITIAL_CONTACTS;
-	});
+	const [contacts, setContacts] = useState([]);
 	const [newContactData, setNewContactData] = useState(getEmptyContactForm());
 	const [editingContact, setEditingContact] = useState(null);
 	const [isContactModalOpen, setIsContactModalOpen] = useState(false);
