@@ -1,0 +1,21 @@
+[Unit]
+Description=CRM Database Explorer
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/crm-backend
+Environment=NODE_ENV=production
+Environment=DB_HOST=127.0.0.1
+Environment=DB_PORT=5432
+Environment=DB_USER=crm_user
+Environment=DB_PASSWORD=crm_password
+Environment=DB_NAME=crm_db
+Environment=EXPLORER_PORT=3002
+ExecStart=/usr/bin/node src/db-explorer.js
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

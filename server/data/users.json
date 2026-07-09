@@ -1,0 +1,86 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "password": "123456",
+      "role": "admin",
+      "fullName": "Администратор",
+      "email": "admin@baza.ru",
+      "isActive": true,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "permissions": {
+        "all": true
+      }
+    }
+  ],
+  "roles": [
+    {
+      "id": "admin",
+      "name": "Администратор",
+      "description": "Полный доступ ко всем разделам",
+      "permissions": {
+        "all": true
+      }
+    },
+    {
+      "id": "manager",
+      "name": "Менеджер",
+      "description": "Доступ к объектам, звонкам и контактам",
+      "permissions": {
+        "objects": true,
+        "calls": true,
+        "contacts": true,
+        "systems": true
+      }
+    },
+    {
+      "id": "engineer",
+      "name": "Инженер",
+      "description": "Доступ к инструментам и активациям",
+      "permissions": {
+        "tools": true,
+        "activations": true,
+        "staff": true
+      }
+    },
+    {
+      "id": "accountant",
+      "name": "Бухгалтер",
+      "description": "Доступ к финансам",
+      "permissions": {
+        "costs": true,
+        "buy": true,
+        "invoices": true,
+        "transport": true
+      }
+    },
+    {
+      "id": "viewer",
+      "name": "Наблюдатель",
+      "description": "Только просмотр",
+      "permissions": {
+        "objects": true,
+        "calls": true,
+        "contacts": true,
+        "readOnly": true
+      }
+    }
+  ],
+  "sections": [
+    { "id": "objects", "name": "Объекты", "icon": "Building2" },
+    { "id": "calls", "name": "Звонки", "icon": "Phone" },
+    { "id": "contacts", "name": "Контакты", "icon": "Users" },
+    { "id": "staff", "name": "Персонал", "icon": "UserCheck" },
+    { "id": "systems", "name": "Системы", "icon": "Server" },
+    { "id": "tools", "name": "Инструменты", "icon": "Wrench" },
+    { "id": "activations", "name": "Активации", "icon": "Power" },
+    { "id": "costs", "name": "Расходы", "icon": "DollarSign" },
+    { "id": "buy", "name": "Закупки", "icon": "ShoppingCart" },
+    { "id": "invoices", "name": "Счета", "icon": "FileText" },
+    { "id": "transport", "name": "Транспорт", "icon": "Truck" },
+    { "id": "time", "name": "Время", "icon": "Clock" },
+    { "id": "wishes", "name": "Пожелания", "icon": "Heart" },
+    { "id": "users", "name": "Пользователи", "icon": "UserCog" }
+  ]
+}
