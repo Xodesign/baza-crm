@@ -1,6 +1,5 @@
 // Auth API client
-const API_BASE_URL =
-	import.meta.env.VITE_API_URL || "http://186.246.10.122:3000/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://firebaze.ru/api";
 
 export const authApi = {
 	async login(username, password) {

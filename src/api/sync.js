@@ -1,5 +1,5 @@
 // Sync API - Centralized data sync with server
-const API_BASE = "http://186.246.10.122:3000/api";
+const API_BASE = "http://firebaze.ru/api";
 
 const syncApi = {
 	// Generic CRUD operations

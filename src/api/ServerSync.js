@@ -1,7 +1,7 @@
 // ServerSync - Wrapper for server-first data with localStorage fallback
 // All data is ALWAYS saved to server, localStorage is just cache
 
-const API_BASE = "http://186.246.10.122:3000/api";
+const API_BASE = "http://firebaze.ru/api";
 const STORAGE_PREFIX = "baza_sync_";
 
 // Global sync status

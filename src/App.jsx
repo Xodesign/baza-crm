@@ -53,12 +53,13 @@ import UsersPanel from "./components/UsersPanel";
 import Reports from "./components/Reports";
 import ActivityLog from "./components/ActivityLog";
 import HelpTips from "./components/HelpTips";
+import SystemsSection from "./components/SystemsSection";
 import "./App.css";
 import EngineersCalendar from "./components/EngineersCalendar";
 import CallsForm from "./components/CallsForm";
 
 // API URL
-const API_URL = "http://186.246.10.122:3000/api";
+const API_URL = "https://firebaze.ru/api";
 
 // === ИКОНКИ ДЛЯ РАЗДЕЛОВ ===
 const SECTION_ICONS = {
@@ -597,35 +598,17 @@ function App() {
 	const [rdFolderCount, setRDFolderCount] = useState(0);
 
 	// --- СТЕЙТЫ ОБЪЕКТОВ ---
-	const [objects, setObjects] = useState(() => {
-		const saved = localStorage.getItem("baza_objects");
-		if (saved) {
-			try {
-				return JSON.parse(saved);
-			} catch {}
-		}
-		return [];
-	});
+	const [objects, setObjects] = useState([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [initialObjectsLoaded, setInitialObjectsLoaded] = useState(false);
 	const [newFormData, setNewFormData] = useState(getEmptyObjectForm());
-
-	// Обёртка над setObjects — сохраняет в localStorage
-	const saveObjects = (newObjects) => {
-		setObjects(newObjects);
-		try {
-			localStorage.setItem("baza_objects", JSON.stringify(newObjects));
-		} catch (err) {
-			console.warn("baza_objects save error:", err);
-		}
-	};
 
 	// Синхронизация с сервером для объектов
 	const syncObjectToServer = async (obj, action) => {
 		try {
 			const { id, _serverId, ...data } = obj;
 			if (action === "create") {
-				const res = await fetch("http://186.246.10.122:3000/api/objects", {
+				const res = await fetch("https://firebaze.ru/api/objects", {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify(data),
@@ -635,7 +618,7 @@ function App() {
 					return saved._serverId || saved.id;
 				}
 			} else if (action === "update" && _serverId) {
-				await fetch(`http://186.246.10.122:3000/api/objects/${_serverId}`, {
+				await fetch(`https://firebaze.ru/api/objects/${_serverId}`, {
 					method: "PUT",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify(data),
@@ -650,7 +633,7 @@ function App() {
 	const deleteObjectFromServer = async (_serverId) => {
 		if (!_serverId) return;
 		try {
-			await fetch(`http://186.246.10.122:3000/api/objects/${_serverId}`, {
+			await fetch(`https://firebaze.ru/api/objects/${_serverId}`, {
 				method: "DELETE",
 			});
 		} catch (err) {
@@ -659,7 +642,7 @@ function App() {
 	};
 
 	// === СИНХРОНИЗАЦИЯ ДАННЫХ С СЕРВЕРОМ ===
-	const API = "http://186.246.10.122:3000/api";
+	const API = "https://firebaze.ru/api";
 
 	const syncToServer = async (section, data, id = null) => {
 		try {
@@ -709,94 +692,19 @@ function App() {
 	// Загрузка объектов: сервер → localStorage → Excel
 	useEffect(() => {
 		const loadObjects = async () => {
-			// 1. Пробуем сервер
+			// ТОЛЬКО сервер https://firebaze.ru/api
+			setIsLoading(true);
 			try {
-				const res = await fetch("http://186.246.10.122:3000/api/objects");
+				const res = await fetch("https://firebaze.ru/api/objects");
 				if (res.ok) {
 					const serverObjs = await res.json();
-					if (serverObjs.length > 0) {
-						saveObjects(serverObjs);
-						setInitialObjectsLoaded(true);
-						setIsLoading(false);
-						return;
-					}
+					setObjects(serverObjs || []);
 				}
 			} catch (err) {
-				console.warn("Server objects fetch failed:", err);
+				console.error("Ошибка загрузки объектов:", err);
 			}
-
-			// 2. Фоллбэк на localStorage
-			const saved = localStorage.getItem("baza_objects");
-			if (saved) {
-				try {
-					const parsed = JSON.parse(saved);
-					if (parsed.length > 0) {
-						setObjects(parsed);
-						setInitialObjectsLoaded(true);
-						setIsLoading(false);
-						return;
-					}
-				} catch (err) {
-					console.warn("baza_objects parse error:", err);
-				}
-			}
-
-			// 3. Фоллбэк на Excel
-			try {
-				const r = await fetch("/excel_data.json");
-				const data = await r.json();
-				const rows = data["Объекты"]?.rows || [];
-				const parsed = rows
-					.filter(
-						(row) =>
-							owner["Наименование объекта"] &&
-							owner["Наименование объекта"] !== "Наименование объекта",
-					)
-					.map((row, idx) => ({
-						id: idx + 1,
-						objectNumber: idx + 1,
-						"№": row["№"] || "",
-						Заказчик: row["Заказчик"] || "",
-						Подрядчик: row["Подрядчик"] || "",
-						"№ контр/дог": row["№ контр/дог"] || "",
-						"Начало действия договора": row["Начало действия договора"] || "",
-						"Окончание действия договора":
-							row["Окончание действия договора"] || "",
-						"Тип договора": row["Тип договора"] || "",
-						Продлеваемость: row["Продлеваемость"] || "",
-						"Письмо о повышении стоимости ТО":
-							row["Письмо о повышении стоимость ТО"] || "",
-						"Свершившееся повышение цены ТО":
-							row["Свершившееся повышение цены ТО"] || "",
-						"Доп соглашение": row["Доп соглашени"] || "",
-						Письма: row["Письма"] || "",
-						"Кто оплачивает ремонт": row["Кто оплачивает ремонт"] || "",
-						"Как оплачиваются доп.работы":
-							row["Как оплачиваются доп.работы"] || "",
-						"К доп работам есть ли аванс":
-							row["К доп работам есть ли аванс"] || "",
-						"Адрес полный объекта": row["Адрес полный объекта"] || "",
-						"Адрес сокращенный": row["Адрес сокращенный"] || "",
-						"Наименование объекта": row["Наименование объекта"] || "",
-						"РД ИД ПД": row["РД ИД ПД"] || "",
-						Арендатор: row["Арендатор"] || "",
-						Системы: row["Системы"] || "",
-						"Расчетное время на обслуживание":
-							row["Расчетное время на обслуживание"] || "",
-						Контакты: row["Контакты"] || "",
-						Заметки: row["Заметки"] || "",
-						"Инструмент на объекте": row["Инструмент на объекте"] || "",
-					}));
-				if (parsed.length > 0) {
-					saveObjects(parsed);
-				}
-				setInitialObjectsLoaded(true);
-				setIsLoading(false);
-			} catch (err) {
-				console.error("Ошибка загрузки данных:", err);
-				setInitialObjectsLoaded(true);
-				setIsLoading(false);
-			}
+			setIsLoading(false);
+			setInitialObjectsLoaded(true);
 		};
 		loadObjects();
 	}, []);
@@ -853,7 +761,7 @@ function App() {
 	useEffect(() => {
 		const loadTools = async () => {
 			try {
-				const res = await fetch("http://186.246.10.122:3000/api/tools");
+				const res = await fetch("https://firebaze.ru/api/tools");
 				if (res.ok) {
 					const data = await res.json();
 					setTools(
@@ -900,7 +808,7 @@ function App() {
 	useEffect(() => {
 		const loadBuyItems = async () => {
 			try {
-				const res = await fetch("http://186.246.10.122:3000/api/requests");
+				const res = await fetch("https://firebaze.ru/api/requests");
 				if (res.ok) {
 					const data = await res.json();
 					setBuyItems(data);
@@ -1047,7 +955,7 @@ function App() {
 		// Также сохраняем в объект
 		const systemKey = `system_${systemDetail.systemName}`;
 		objectContactsSyncRef.current = true;
-		saveObjects(
+		setObjects(
 			objects.map((o) =>
 				o.id === systemDetail.objectId
 					? { ...o, [systemKey]: systemFormData }
@@ -1137,7 +1045,7 @@ function App() {
 	useEffect(() => {
 		const fetchCount = async () => {
 			try {
-				const res = await fetch("http://186.246.10.122:3000/api/rd/folders");
+				const res = await fetch("https://firebaze.ru/api/rd/folders");
 				if (res.ok) {
 					const data = await res.json();
 					setRDFolderCount(Array.isArray(data) ? data.length : 0);
@@ -1152,7 +1060,7 @@ function App() {
 		if (activeTab === "rd") {
 			const fetchCount = async () => {
 				try {
-					const res = await fetch("http://186.246.10.122:3000/api/rd/folders");
+					const res = await fetch("https://firebaze.ru/api/rd/folders");
 					if (res.ok) {
 						const data = await res.json();
 						setRDFolderCount(Array.isArray(data) ? data.length : 0);
@@ -1483,7 +1391,7 @@ function App() {
 			...newFormData,
 		};
 		objectContactsSyncRef.current = true;
-		saveObjects([newObj, ...objects]);
+		setObjects([newObj, ...objects]);
 		setNewFormData(getEmptyObjectForm());
 		// Синхронизация с сервером
 		syncObjectToServer(newObj, "create").then((serverId) => {
@@ -1609,7 +1517,7 @@ function App() {
 		const newObjects = Array.from({ length: count }, () =>
 			generateRandomObject(),
 		);
-		saveObjects([...newObjects, ...objects]);
+		setObjects([...newObjects, ...objects]);
 		newObjects.forEach((obj) => syncObjectToServer(obj, "create"));
 	};
 
@@ -1617,7 +1525,7 @@ function App() {
 		if (confirm("Удалить объект?")) {
 			objectContactsSyncRef.current = true;
 			const obj = objects.find((o) => o.id === id);
-			saveObjects(objects.filter((o) => o.id !== id));
+			setObjects(objects.filter((o) => o.id !== id));
 			deleteObjectFromServer(obj?._serverId);
 		}
 	};
@@ -1639,7 +1547,7 @@ function App() {
 		const newTenant = newObject["Арендатор"] || "";
 
 		objectContactsSyncRef.current = true;
-		saveObjects(
+		setObjects(
 			objects.map((o) => (o.id === editingObject.id ? editingObject : o)),
 		);
 
@@ -1895,7 +1803,7 @@ function App() {
 		);
 		// Сохраняем на сервер
 		try {
-			const res = await fetch("http://186.246.10.122:3000/api/requests", {
+			const res = await fetch("https://firebaze.ru/api/requests", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
@@ -1940,7 +1848,7 @@ function App() {
 
 		try {
 			for (const toolId of toolIds) {
-				await fetch(`http://186.246.10.122:3000/api/tools/${toolId}`, {
+				await fetch(`https://firebaze.ru/api/tools/${toolId}`, {
 					method: "PUT",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({
@@ -1973,7 +1881,7 @@ function App() {
 	const syncCallToServer = async (callData) => {
 		try {
 			const objectId = callData.objectId || null;
-			await fetch("http://186.246.10.122:3000/api/calls", {
+			await fetch("https://firebaze.ru/api/calls", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
@@ -2436,7 +2344,7 @@ function App() {
 	const handleDeleteBuy = async (id) => {
 		if (!confirm("Удалить заявку?")) return;
 		try {
-			await fetch(`http://186.246.10.122:3000/api/requests/${id}`, {
+			await fetch(`https://firebaze.ru/api/requests/${id}`, {
 				method: "DELETE",
 			});
 		} catch (e) {
@@ -2701,49 +2609,53 @@ function App() {
 	};
 
 	// === ФИЛЬТРАЦИЯ ОБЪЕКТОВ ===
-	const filteredObjects = objects.filter((o) => {
-		// Текстовый поиск
-		const q = searchQuery.toLowerCase();
-		const matchesSearch =
-			!q ||
-			(o["Наименование объекта"] || "").toLowerCase().includes(q) ||
-			(o["Заказчик"] || "").toLowerCase().includes(q) ||
-			(o["№ контр/дог"] || "").toLowerCase().includes(q) ||
-			(o["Адрес полный объекта"] || "").toLowerCase().includes(q) ||
-			(o["Адрес сокращенный"] || "").toLowerCase().includes(q) ||
-			(o["Арендатор"] || "").toLowerCase().includes(q) ||
-			(o["Системы"] || "").toLowerCase().includes(q);
+	const filteredObjects = objects
+		.filter((o) => {
+			// Текстовый поиск
+			const q = searchQuery.toLowerCase();
+			const matchesSearch =
+				!q ||
+				(o["Наименование объекта"] || "").toLowerCase().includes(q) ||
+				(o["Заказчик"] || "").toLowerCase().includes(q) ||
+				(o["№ контр/дог"] || "").toLowerCase().includes(q) ||
+				(o["Адрес полный объекта"] || "").toLowerCase().includes(q) ||
+				(o["Адрес сокращенный"] || "").toLowerCase().includes(q) ||
+				(o["Арендатор"] || "").toLowerCase().includes(q) ||
+				(o["Системы"] || "").toLowerCase().includes(q);
 
-		// Фильтр по типу договора
-		const matchesType =
-			!objectFilters.type || o["Тип договора"] === objectFilters.type;
+			// Фильтр по типу договора
+			const matchesType =
+				!objectFilters.type || o["Тип договора"] === objectFilters.type;
 
-		// Фильтр по подрядчику
-		const matchesContractor =
-			!objectFilters.contractor || o["Подрядчик"] === objectFilters.contractor;
+			// Фильтр по подрядчику
+			const matchesContractor =
+				!objectFilters.contractor ||
+				o["Подрядчик"] === objectFilters.contractor;
 
-		// Фильтр по продлеваемости
-		const objExtendable = o["Продлеваемость"] || o["Продлеваемость "] || "";
-		const matchesExtendable =
-			!objectFilters.extendable || objectFilters.extendable === "all"
-				? true
-				: objectFilters.extendable === "undefined"
-					? !objExtendable
-					: objExtendable === objectFilters.extendable;
+			// Фильтр по продлеваемости
+			const objExtendable = o["Продлеваемость"] || o["Продлеваемость "] || "";
+			const matchesExtendable =
+				!objectFilters.extendable || objectFilters.extendable === "all"
+					? true
+					: objectFilters.extendable === "undefined"
+						? !objExtendable
+						: objExtendable === objectFilters.extendable;
 
-		// Фильтр по наличию инструмента
-		const matchesTool =
-			!objectFilters.hasTool ||
-			o["Инструмент на объекте"] === objectFilters.hasTool;
+			// Фильтр по наличию инструмента
+			const matchesTool =
+				!objectFilters.hasTool ||
+				o["Инструмент на объекте"] === objectFilters.hasTool;
 
-		return (
-			matchesSearch &&
-			matchesType &&
-			matchesContractor &&
-			matchesExtendable &&
-			matchesTool
-		);
-	});
+			return (
+				matchesSearch &&
+				matchesType &&
+				matchesContractor &&
+				matchesExtendable &&
+				matchesTool
+			);
+		})
+		// СОРТИРОВКА: новые объекты вверху (по objectNumber desc)
+		.sort((a, b) => (b.objectNumber || 0) - (a.objectNumber || 0));
 
 	// Получение уникальных значений для фильтров
 	const uniqueContractors = [
@@ -3037,13 +2949,21 @@ function App() {
 
 	// === РЕНДЕР РАЗДЕЛОВ ===
 	const renderSection = () => {
-		// Если открыта страница деталей системы — показываем её
-		if (systemDetail) {
+		// Если НЕ в разделе systems и открыта деталь системы — показываем её
+		if (systemDetail && activeTab !== "systems") {
 			return renderSystemDetailPage();
 		}
 		switch (activeTab) {
 			case "objects":
 				return renderObjectsSection();
+			case "systems":
+				return (
+					<SystemsSection
+						objects={objects}
+						setObjects={setObjects}
+						syncObjectToServer={syncObjectToServer}
+					/>
+				);
 			case "calls":
 				return renderCallsSection();
 			case "costs":
@@ -3123,7 +3043,7 @@ function App() {
 
 			const newSystemsString = selectedSystemsForObject.join(", ");
 			objectContactsSyncRef.current = true;
-			saveObjects(
+			setObjects(
 				objects.map((o) =>
 					o.id === systemPickerObject.id
 						? { ...o, Системы: newSystemsString }
@@ -4268,146 +4188,6 @@ function App() {
 		);
 	}
 
-	function renderSystemsSection() {
-		return (
-			<>
-				<div className="content-header">
-					<h2>Системы объектов</h2>
-					<div className="header-actions">
-						<HelpTips section="systems" />
-					</div>
-				</div>
-				<div className="table-container">
-					<table className="data-table">
-						<thead>
-							<tr>
-								<th>ID</th>
-								<th>Объект</th>
-								<th>Тип системы</th>
-								<th>Бренд</th>
-								<th>Тип</th>
-								<th>Кол-во</th>
-								<th>Действия</th>
-							</tr>
-						</thead>
-						<tbody>
-							{systems.length === 0 ? (
-								<tr>
-									<td colSpan="7" className="empty-state">
-										Нет систем
-									</td>
-								</tr>
-							) : (
-								systems.map((s) => (
-									<tr key={s.id}>
-										<td>{s.id}</td>
-										<td>{s.parentObject}</td>
-										<td>{s.systemType}</td>
-										<td>{s.brand}</td>
-										<td>{s.systemKind}</td>
-										<td>{s.quantity}</td>
-										<td>
-											<button
-												className="btn-icon btn-delete"
-												onClick={() => handleDeleteSystem(s.id)}
-											>
-												<Trash2 size={16} />
-											</button>
-										</td>
-									</tr>
-								))
-							)}
-						</tbody>
-					</table>
-				</div>
-				<div className="add-form-section">
-					<h3>
-						<Plus size={20} />
-						Добавить систему
-					</h3>
-					<form onSubmit={handleAddSystem} className="add-form">
-						<div className="form-grid">
-							<div className="form-group">
-								<label>Объект</label>
-								<input
-									type="text"
-									value={newSystemData.parentObject}
-									onChange={(e) =>
-										setNewSystemData({
-											...newSystemData,
-											parentObject: e.target.value,
-										})
-									}
-								/>
-							</div>
-							<div className="form-group">
-								<label>Тип системы</label>
-								<select
-									value={newSystemData.systemType}
-									onChange={(e) =>
-										setNewSystemData({
-											...newSystemData,
-											systemType: e.target.value,
-										})
-									}
-								>
-									<option value="АПС">АПС</option>
-									<option value="СОУЭ">СОУЭ</option>
-									<option value="ВПВ">ВПВ</option>
-									<option value="АПТ">АПТ</option>
-								</select>
-							</div>
-							<div className="form-group">
-								<label>Бренд</label>
-								<input
-									type="text"
-									value={newSystemData.brand}
-									onChange={(e) =>
-										setNewSystemData({
-											...newSystemData,
-											brand: e.target.value,
-										})
-									}
-								/>
-							</div>
-							<div className="form-group">
-								<label>Тип оборудования</label>
-								<input
-									type="text"
-									value={newSystemData.systemKind}
-									onChange={(e) =>
-										setNewSystemData({
-											...newSystemData,
-											systemKind: e.target.value,
-										})
-									}
-									placeholder="датчиков, динамики, рукава..."
-								/>
-							</div>
-							<div className="form-group">
-								<label>Количество</label>
-								<input
-									type="text"
-									value={newSystemData.quantity}
-									onChange={(e) =>
-										setNewSystemData({
-											...newSystemData,
-											quantity: e.target.value,
-										})
-									}
-								/>
-							</div>
-						</div>
-						<button type="submit" className="btn btn-primary">
-							<Plus size={18} />
-							Добавить
-						</button>
-					</form>
-				</div>
-			</>
-		);
-	}
-
 	function renderCostsSection() {
 		return (
 			<>
@@ -5146,7 +4926,7 @@ function App() {
 				buyItems.map((b) => (b.id === id ? { ...b, status: newStatus } : b)),
 			);
 			try {
-				await fetch(`http://186.246.10.122:3000/api/requests/${id}`, {
+				await fetch(`https://firebaze.ru/api/requests/${id}`, {
 					method: "PUT",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({ status: newStatus }),
@@ -6537,7 +6317,7 @@ function App() {
 		const [searchQ, setSearchQ] = useState("");
 		const [loading, setLoading] = useState(true);
 		const fileInputRef = useRef(null);
-		const apiBase = "http://186.246.10.122:3000/api";
+		const apiBase = "https://firebaze.ru/api";
 		const abortRef = useRef(null);
 
 		// Загрузка данных с сервера
