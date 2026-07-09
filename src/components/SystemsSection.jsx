@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Save, Plus, Trash2 } from "lucide-react";
 
 export default function SystemsSection({
@@ -22,6 +22,7 @@ export default function SystemsSection({
 	const [newSystemName, setNewSystemName] = useState("");
 	const [showAddForm, setShowAddForm] = useState(false);
 	const [isAdding, setIsAdding] = useState(false);
+	const saveTimeoutRef = useRef(null);
 
 	// Загрузить типы систем с VPS
 	useEffect(() => {
@@ -56,33 +57,66 @@ export default function SystemsSection({
 		);
 	};
 
-	const updateSystemData = (objectId, systemName, field, value) => {
-		setObjects((prev) =>
-			prev.map((obj) => {
-				if (obj.id !== objectId) return obj;
-				const systemsData = obj.systemsData || {};
-				const sysData = systemsData[systemName] || {
-					brand: "",
-					type: "",
-					qty: "",
-					link: "",
-					alarm: "",
-				};
-				return {
-					...obj,
-					systemsData: {
-						...systemsData,
-						[systemName]: { ...sysData, [field]: value },
-					},
-				};
-			}),
-		);
-		setHasChanges(true);
-	};
+	const updateSystemData = useCallback(
+		(objectId, systemName, field, value) => {
+			setObjects((prev) => {
+				const updated = prev.map((obj) => {
+					if (obj.id !== objectId) return obj;
+					const systemsData = obj.systemsData || {};
+					const sysData = systemsData[systemName] || {
+						brand: "",
+						type: "",
+						qty: "",
+						link: "",
+						alarm: "",
+					};
+					return {
+						...obj,
+						systemsData: {
+							...systemsData,
+							[systemName]: { ...sysData, [field]: value },
+						},
+					};
+				});
+				return updated;
+			});
+			setHasChanges(true);
+
+			// Сохранить на VPS через 1 секунду после последнего изменения
+			if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+			saveTimeoutRef.current = setTimeout(() => {
+				const obj = objects.find((o) => o.id === objectId);
+				if (obj) {
+					const { id, _serverId, ...data } = {
+						...obj,
+						systemsData: {
+							...obj.systemsData,
+							[systemName]: {
+								...getSystemData(obj, systemName),
+								[field]: value,
+							},
+						},
+					};
+					fetch(`https://firebaze.ru/api/objects/${_serverId || obj.id}`, {
+						method: "PUT",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify(data),
+					})
+						.then((res) => {
+							if (res.ok) {
+								console.log("Сохранено на VPS:", systemName, field, value);
+							}
+						})
+						.catch((err) => console.error("Ошибка сохранения:", err));
+				}
+			}, 1000);
+		},
+		[objects, setObjects],
+	);
 
 	const handleSaveAll = async () => {
 		for (const obj of objects) {
-			await syncObjectToServer(obj);
+			await syncObjectToServer(obj, "update");
 		}
 		setHasChanges(false);
 		alert("Данные сохранены!");
@@ -104,7 +138,6 @@ export default function SystemsSection({
 				setSystemTypes([...systemTypes, newSystemName.trim()]);
 				setNewSystemName("");
 				setShowAddForm(false);
-				alert("Тип системы добавлен!");
 			}
 		} catch (err) {
 			alert("Ошибка: " + err.message);
@@ -153,6 +186,13 @@ export default function SystemsSection({
 		if (e.key === "Enter") finishEdit();
 		if (e.key === "Escape") setEditingCell(null);
 	};
+
+	// Очистка таймера при размонтировании
+	useEffect(() => {
+		return () => {
+			if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+		};
+	}, []);
 
 	const sortedObjects = [...objects].sort(
 		(a, b) => (b.objectNumber || 0) - (a.objectNumber || 0),
@@ -288,7 +328,7 @@ export default function SystemsSection({
 			<div className="systems-help">
 				<p>
 					Дважды кликните на ячейку для редактирования. Enter - сохранить,
-					Escape - отмена.
+					Escape - отмена. Изменения сохраняются автоматически.
 				</p>
 			</div>
 		</div>
