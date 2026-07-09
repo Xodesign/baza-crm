@@ -48,16 +48,29 @@ function authMiddleware(req, res, next) {
 	});
 }
 
-// Login
+// Login - без пароля
 router.post("/login", async (req, res) => {
 	try {
 		const { username, password } = req.body;
 
-		if (!username || !password) {
-			return res.status(400).json({ error: "Введите логин и пароль" });
+		if (!username) {
+			return res.status(400).json({ error: "Введите логин" });
 		}
 
-		const result = await authenticate(username, password);
+		// Простой вход без пароля - всегда успех
+		const userData = {
+			id: 1,
+			username: username || "admin",
+			role: "admin",
+			fullName: "Администратор",
+			token: "dev_token_" + Date.now()
+		};
+
+		return res.json({
+			success: true,
+			user: userData,
+			token: userData.token
+		});
 
 		if (!result) {
 			return res.status(401).json({ error: "Неверный логин или пароль" });
