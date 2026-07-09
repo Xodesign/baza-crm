@@ -83,32 +83,48 @@ export default function SystemsSection({
 			setHasChanges(true);
 
 			// Сохранить на VPS через 1 секунду после последнего изменения
+			const targetObj = objects.find((o) => o.id === objectId);
+			if (!targetObj) {
+				console.error("Объект не найден:", objectId);
+				return;
+			}
+			const serverId = targetObj._serverId || targetObj.id;
 			const dataToSave = {
-				...objects.find((o) => o.id === objectId),
+				...targetObj,
 				systemsData: {
-					...(objects.find((o) => o.id === objectId)?.systemsData || {}),
+					...(targetObj.systemsData || {}),
 					[systemName]: {
-						...(objects.find((o) => o.id === objectId)?.systemsData?.[systemName] || {}),
+						...(targetObj.systemsData?.[systemName] || {}),
 						[field]: value,
 					},
 				},
 			};
-			const serverId = objects.find((o) => o.id === objectId)?._serverId || objects.find((o) => o.id === objectId)?.id;
-			
+
 			if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
 			saveTimeoutRef.current = setTimeout(() => {
 				const token = localStorage.getItem("authToken");
 				const { id, ...data } = dataToSave;
+				const jsonBody = JSON.stringify(data);
+				console.log(
+					"Отправка PUT:",
+					`/api/objects/${serverId}`,
+					jsonBody.substring(0, 200),
+				);
 				fetch(`https://firebaze.ru/api/objects/${serverId}`, {
 					method: "PUT",
 					headers: {
 						"Content-Type": "application/json",
 						Authorization: `Bearer ${token}`,
 					},
-					body: JSON.stringify(data),
-				}).then((res) => {
-					if (res.ok) console.log("Сохранено на VPS:", systemName, field, value);
-				}).catch((err) => console.error("Ошибка сохранения:", err));
+					body: jsonBody,
+				})
+					.then((res) => {
+						console.log("Ответ:", res.status, res.statusText);
+						if (res.ok)
+							console.log("Сохранено на VPS:", systemName, field, value);
+						else res.text().then((t) => console.error("Ошибка:", t));
+					})
+					.catch((err) => console.error("Ошибка сохранения:", err));
 			}, 1000);
 		},
 		[objects],
