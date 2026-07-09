@@ -606,21 +606,26 @@ function App() {
 	// Синхронизация с сервером для объектов
 	const syncObjectToServer = async (obj, action) => {
 		try {
+			const token = localStorage.getItem("authToken");
 			const { id, _serverId, ...data } = obj;
+			const serverId = _serverId || id;
+			const headers = { "Content-Type": "application/json" };
+			if (token) headers["Authorization"] = `Bearer ${token}`;
+
 			if (action === "create") {
 				const res = await fetch("https://firebaze.ru/api/objects", {
 					method: "POST",
-					headers: { "Content-Type": "application/json" },
+					headers,
 					body: JSON.stringify(data),
 				});
 				if (res.ok) {
 					const saved = await res.json();
-					return saved._serverId || saved.id;
+					return saved.id || id;
 				}
-			} else if (action === "update" && _serverId) {
-				await fetch(`https://firebaze.ru/api/objects/${_serverId}`, {
+			} else if (action === "update" && serverId) {
+				await fetch(`https://firebaze.ru/api/objects/${serverId}`, {
 					method: "PUT",
-					headers: { "Content-Type": "application/json" },
+					headers,
 					body: JSON.stringify(data),
 				});
 			}
@@ -3008,18 +3013,21 @@ function App() {
 		};
 
 		// Функция сохранения выбранных систем
-		const saveObjectSystems = () => {
+		const saveObjectSystems = async () => {
 			if (!systemPickerObject) return;
 
 			const newSystemsString = selectedSystemsForObject.join(", ");
 			objectContactsSyncRef.current = true;
+
+			const updatedObj = { ...systemPickerObject, Системы: newSystemsString };
+
 			setObjects(
-				objects.map((o) =>
-					o.id === systemPickerObject.id
-						? { ...o, Системы: newSystemsString }
-						: o,
-				),
+				objects.map((o) => (o.id === systemPickerObject.id ? updatedObj : o)),
 			);
+
+			// Сохранить на VPS
+			await syncObjectToServer(updatedObj, "update");
+
 			setIsSystemPickerOpen(false);
 			setSystemPickerObject(null);
 		};
