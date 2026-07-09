@@ -97,9 +97,13 @@ export default function SystemsSection({
 							},
 						},
 					};
+					const token = localStorage.getItem("authToken");
 					fetch(`https://firebaze.ru/api/objects/${_serverId || obj.id}`, {
 						method: "PUT",
-						headers: { "Content-Type": "application/json" },
+						headers: {
+							"Content-Type": "application/json",
+							Authorization: `Bearer ${token}`,
+						},
 						body: JSON.stringify(data),
 					})
 						.then((res) => {
