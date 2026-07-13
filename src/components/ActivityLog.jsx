@@ -22,7 +22,7 @@ export default function ActivityLog() {
 	async function loadLogs() {
 		setLoading(true);
 		try {
-			const res = await fetch("http://firebaze.ru/api/logs");
+			const res = await fetch("https://firebaze.ru/api/logs");
 			if (res.ok) {
 				const data = await res.json();
 				setLogs(data);

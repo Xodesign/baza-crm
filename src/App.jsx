@@ -850,9 +850,6 @@ function App() {
 
 	const [calendarObject] = useState(INITIAL_CALENDAR_OBJECT);
 
-	// --- СТЕЙТЫ ПОЖЕЛАНИЯ ---
-	const [wishes] = useState(INITIAL_WISHES);
-
 	// --- СТЕЙТЫ ДОПОЛНИТЕЛЬНЫЕ ---
 	const [extra] = useState(INITIAL_EXTRA);
 
@@ -888,6 +885,22 @@ function App() {
 		aspt: { brand: "", type: "", qty: "", link: "", alarm: "" },
 		name: { brand: "", type: "", qty: "", link: "", alarm: "" },
 	});
+
+	// --- СТЕЙТЫ ПОЖЕЛАНИЙ ---
+	const [wishes, setWishes] = useState([]);
+	const [wishForm, setWishForm] = useState({
+		title: "",
+		description: "",
+		objectName: "",
+		status: "new",
+		priority: "normal",
+		files: [],
+		comments: [],
+	});
+	const [showWishForm, setShowWishForm] = useState(false);
+	const [editingWish, setEditingWish] = useState(null);
+	const [wishUploading, setWishUploading] = useState(false);
+	const [newComment, setNewComment] = useState("");
 
 	// Открытие страницы системы
 	const openSystemDetail = (
@@ -6915,41 +6928,428 @@ function App() {
 	}
 
 	function renderWishesSection() {
+		const resetWishForm = () => {
+			setWishForm({
+				title: "",
+				description: "",
+				objectName: "",
+				status: "new",
+				priority: "normal",
+				files: [],
+				comments: [],
+			});
+			setEditingWish(null);
+			setShowWishForm(false);
+			setNewComment("");
+		};
+
+		const handleAddComment = () => {
+			if (!newComment.trim()) return;
+			setWishForm((prev) => ({
+				...prev,
+				comments: [
+					...prev.comments,
+					{
+						id: Date.now(),
+						text: newComment.trim(),
+						author: "Администратор",
+						date: new Date().toISOString(),
+					},
+				],
+			}));
+			setNewComment("");
+		};
+
+		const handleFileUpload = async (e) => {
+			const files = Array.from(e.target.files);
+			if (files.length === 0) return;
+			setWishUploading(true);
+			const uploadedFiles = [];
+			for (const file of files) {
+				const reader = new FileReader();
+				const base64 = await new Promise((resolve) => {
+					reader.onload = () => resolve(reader.result.split(",")[1]);
+					reader.readAsDataURL(file);
+				});
+				try {
+					const res = await fetch("https://firebaze.ru/api/uploads", {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+							Authorization: authToken,
+						},
+						body: JSON.stringify({
+							filename: file.name,
+							data: base64,
+							type: file.type,
+						}),
+					});
+					if (res.ok) {
+						const result = await res.json();
+						uploadedFiles.push({ name: file.name, url: result.url });
+					}
+				} catch (err) {
+					console.error("Upload error:", err);
+				}
+			}
+			setWishForm((prev) => ({
+				...prev,
+				files: [...prev.files, ...uploadedFiles],
+			}));
+			setWishUploading(false);
+		};
+
+		const handleSaveWish = async () => {
+			if (!wishForm.title.trim()) {
+				alert("Введите заголовок");
+				return;
+			}
+			const wishData = {
+				...wishForm,
+				id: editingWish ? editingWish.id : Date.now(),
+				createdAt: editingWish
+					? editingWish.createdAt
+					: new Date().toISOString(),
+				updatedAt: new Date().toISOString(),
+			};
+			try {
+				const method = editingWish ? "PUT" : "POST";
+				const url = editingWish
+					? `https://firebaze.ru/api/wishes/${editingWish.id}`
+					: "https://firebaze.ru/api/wishes";
+				const res = await fetch(url, {
+					method,
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: authToken,
+					},
+					body: JSON.stringify(wishData),
+				});
+				if (res.ok) {
+					const saved = await res.json();
+					if (editingWish) {
+						setWishes(wishes.map((w) => (w.id === editingWish.id ? saved : w)));
+					} else {
+						setWishes([saved, ...wishes]);
+					}
+					resetWishForm();
+				}
+			} catch (err) {
+				if (editingWish) {
+					setWishes(
+						wishes.map((w) => (w.id === editingWish.id ? wishData : w)),
+					);
+				} else {
+					setWishes([wishData, ...wishes]);
+				}
+				resetWishForm();
+			}
+		};
+
+		const handleEditWish = (wish) => {
+			setWishForm({
+				title: wish.title || "",
+				description: wish.description || "",
+				objectName: wish.objectName || "",
+				status: wish.status || "new",
+				priority: wish.priority || "normal",
+				files: wish.files || [],
+				comments: wish.comments || [],
+			});
+			setEditingWish(wish);
+			setShowWishForm(true);
+		};
+
+		const handleDeleteWish = async (id) => {
+			if (!confirm("Удалить?")) return;
+			try {
+				await fetch(`https://firebaze.ru/api/wishes/${id}`, {
+					method: "DELETE",
+					headers: { Authorization: authToken },
+				});
+			} catch (err) {}
+			setWishes(wishes.filter((w) => w.id !== id));
+		};
+
+		const getPriorityColor = (p) => {
+			switch (p) {
+				case "high":
+					return "#dc3545";
+				case "normal":
+					return "#ffc107";
+				case "low":
+					return "#6c757d";
+				default:
+					return "#6c757d";
+			}
+		};
+		const getPriorityLabel = (p) => {
+			switch (p) {
+				case "high":
+					return "🔥 Срочно";
+				case "normal":
+					return "Обычное";
+				case "low":
+					return "Когда будет время";
+				default:
+					return p;
+			}
+		};
+		const getStatusColor = (s) => {
+			switch (s) {
+				case "new":
+					return "#dc3545";
+				case "progress":
+					return "#ffc107";
+				case "done":
+					return "#28a745";
+				default:
+					return "#6c757d";
+			}
+		};
+		const getStatusLabel = (s) => {
+			switch (s) {
+				case "new":
+					return "Новая";
+				case "progress":
+					return "В работе";
+				case "done":
+					return "Готово";
+				default:
+					return s;
+			}
+		};
+
+		if (showWishForm) {
+			return (
+				<div className="section wish-form-page">
+					<div className="content-header">
+						<button className="btn btn-secondary" onClick={resetWishForm}>
+							<ArrowLeft size={18} /> Назад
+						</button>
+					</div>
+					<div className="wish-form-container">
+						<h2>{editingWish ? "Редактирование" : "Новая заметка"}</h2>
+						<div className="form-section">
+							<div className="form-group">
+								<label>Заголовок *</label>
+								<input
+									type="text"
+									value={wishForm.title}
+									onChange={(e) =>
+										setWishForm({ ...wishForm, title: e.target.value })
+									}
+									placeholder="Например: Правки по проекту"
+								/>
+							</div>
+							<div className="form-group">
+								<label>Объект</label>
+								<input
+									type="text"
+									value={wishForm.objectName}
+									onChange={(e) =>
+										setWishForm({ ...wishForm, objectName: e.target.value })
+									}
+									placeholder="Объект"
+									list="wish-objects"
+								/>
+								<datalist id="wish-objects">
+									{objects.map((o) => (
+										<option
+											key={o.id}
+											value={o["Наименование объекта"] || o.name}
+										/>
+									))}
+								</datalist>
+							</div>
+							<div className="form-group">
+								<label>Описание</label>
+								<textarea
+									value={wishForm.description}
+									onChange={(e) =>
+										setWishForm({ ...wishForm, description: e.target.value })
+									}
+									placeholder="Текст правок от клиента..."
+									rows={5}
+								/>
+							</div>
+							<div className="form-row">
+								<div className="form-group">
+									<label>Статус</label>
+									<select
+										value={wishForm.status}
+										onChange={(e) =>
+											setWishForm({ ...wishForm, status: e.target.value })
+										}
+									>
+										<option value="new">Новая</option>
+										<option value="progress">В работе</option>
+										<option value="done">Готово</option>
+									</select>
+								</div>
+								<div className="form-group">
+									<label>Приоритет</label>
+									<select
+										value={wishForm.priority}
+										onChange={(e) =>
+											setWishForm({ ...wishForm, priority: e.target.value })
+										}
+									>
+										<option value="low">Когда будет время</option>
+										<option value="normal">Обычное</option>
+										<option value="high">🔥 Срочно</option>
+									</select>
+								</div>
+							</div>
+							<div className="form-group">
+								<label>Файлы</label>
+								<input
+									type="file"
+									multiple
+									onChange={handleFileUpload}
+									disabled={wishUploading}
+								/>
+								{wishUploading && <span> Загрузка...</span>}
+							</div>
+							{wishForm.files.length > 0 && (
+								<div className="files-list">
+									{wishForm.files.map((f, i) => (
+										<div key={i} className="file-item">
+											<a href={f.url} target="_blank" rel="noopener noreferrer">
+												{f.name}
+											</a>
+										</div>
+									))}
+								</div>
+							)}
+							<div className="form-group">
+								<label>История</label>
+								<div className="comments-list">
+									{wishForm.comments && wishForm.comments.length > 0 ? (
+										wishForm.comments.map((c) => (
+											<div key={c.id} className="comment-item">
+												<div className="comment-header">
+													<span>{c.author}</span>
+													<span>
+														{new Date(c.date).toLocaleDateString("ru-RU")}
+													</span>
+												</div>
+												<div>{c.text}</div>
+											</div>
+										))
+									) : (
+										<div className="empty">Пока нет</div>
+									)}
+								</div>
+								<div className="comment-input">
+									<input
+										type="text"
+										value={newComment}
+										onChange={(e) => setNewComment(e.target.value)}
+										placeholder="Комментарий..."
+										onKeyDown={(e) => {
+											if (e.key === "Enter") handleAddComment();
+										}}
+									/>
+									<button onClick={handleAddComment}>+</button>
+								</div>
+							</div>
+						</div>
+						<div className="form-actions">
+							<button className="btn btn-secondary" onClick={resetWishForm}>
+								Отмена
+							</button>
+							<button className="btn btn-primary" onClick={handleSaveWish}>
+								{editingWish ? "Сохранить" : "Создать"}
+							</button>
+						</div>
+					</div>
+				</div>
+			);
+		}
+
 		return (
 			<>
 				<div className="content-header">
-					<h2>Пожелания</h2>
-					<div className="header-actions">
-						<HelpTips section="wishes" />
-					</div>
+					<h2>Пожелания и заметки</h2>
+					<button
+						className="btn btn-primary"
+						onClick={() => setShowWishForm(true)}
+					>
+						+ Новая заметка
+					</button>
 				</div>
-				<div className="table-container">
-					<table className="data-table">
-						<thead>
-							<tr>
-								<th>ID</th>
-								<th>Пожелание</th>
-								<th>Описание</th>
-							</tr>
-						</thead>
-						<tbody>
-							{wishes.length === 0 ? (
-								<tr>
-									<td colSpan="3" className="empty-state">
-										Нет пожеланий
-									</td>
-								</tr>
-							) : (
-								wishes.map((w) => (
-									<tr key={w.id}>
-										<td>{w.id}</td>
-										<td>{w.wish}</td>
-										<td>{w.description}</td>
-									</tr>
-								))
-							)}
-						</tbody>
-					</table>
+				<div className="wishes-grid">
+					{wishes.length === 0 ? (
+						<div className="empty-state">Нет заметок</div>
+					) : (
+						wishes.map((wish) => (
+							<div
+								key={wish.id}
+								className="wish-card"
+								style={{
+									borderLeft: `4px solid ${getStatusColor(wish.status)}`,
+								}}
+							>
+								<div className="wish-card-header">
+									<div className="wish-badges">
+										<span
+											className="badge"
+											style={{ background: getStatusColor(wish.status) }}
+										>
+											{getStatusLabel(wish.status)}
+										</span>
+										<span
+											className="badge"
+											style={{ background: getPriorityColor(wish.priority) }}
+										>
+											{getPriorityLabel(wish.priority)}
+										</span>
+									</div>
+									<div className="wish-actions">
+										<button onClick={() => handleEditWish(wish)}>
+											<Edit2 size={16} />
+										</button>
+										<button
+											onClick={() => handleDeleteWish(wish.id)}
+											style={{ color: "red" }}
+										>
+											<Trash2 size={16} />
+										</button>
+									</div>
+								</div>
+								<h3>{wish.title}</h3>
+								{wish.objectName && (
+									<div className="wish-meta">📍 {wish.objectName}</div>
+								)}
+								{wish.description && (
+									<div className="wish-desc">{wish.description}</div>
+								)}
+								{wish.files && wish.files.length > 0 && (
+									<div className="wish-files">
+										{wish.files.map((f, i) => (
+											<a
+												key={i}
+												href={f.url}
+												target="_blank"
+												rel="noopener noreferrer"
+											>
+												{f.name}
+											</a>
+										))}
+									</div>
+								)}
+								{wish.comments && wish.comments.length > 0 && (
+									<div className="wish-comments">
+										{wish.comments.length} комментариев
+									</div>
+								)}
+								<div className="wish-date">
+									{new Date(wish.createdAt).toLocaleDateString("ru-RU")}
+								</div>
+							</div>
+						))
+					)}
 				</div>
 			</>
 		);

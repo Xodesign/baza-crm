@@ -1,5 +1,5 @@
 // Sync API - Centralized data sync with server
-const API_BASE = "http://firebaze.ru/api";
+const API_BASE = "https://firebaze.ru/api";
 
 const syncApi = {
 	// Generic CRUD operations

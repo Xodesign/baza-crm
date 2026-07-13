@@ -24,10 +24,10 @@ export default function Reports() {
 		setLoading(true);
 		try {
 			const [objects, calls, transport, costs] = await Promise.all([
-				fetch("http://firebaze.ru/api/objects").then((r) => r.json()),
-				fetch("http://firebaze.ru/api/calls").then((r) => r.json()),
-				fetch("http://firebaze.ru/api/transport").then((r) => r.json()),
-				fetch("http://firebaze.ru/api/costs").then((r) => r.json()),
+				fetch("https://firebaze.ru/api/objects").then((r) => r.json()),
+				fetch("https://firebaze.ru/api/calls").then((r) => r.json()),
+				fetch("https://firebaze.ru/api/transport").then((r) => r.json()),
+				fetch("https://firebaze.ru/api/costs").then((r) => r.json()),
 			]);
 
 			setStats({
