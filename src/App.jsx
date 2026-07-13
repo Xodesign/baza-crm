@@ -836,7 +836,6 @@ function App() {
 		systemName: "",
 		systemType: "",
 		quantity: "",
-		
 	});
 
 	// Арендаторы для крупных объектов
@@ -891,7 +890,7 @@ function App() {
 	const [wishForm, setWishForm] = useState({
 		title: "",
 		description: "",
-		
+		objectName: "",
 		status: "new",
 		priority: "normal",
 		files: [],
@@ -1140,7 +1139,7 @@ function App() {
 			status: "new",
 			type: "",
 			objectId: null,
-			
+
 			shortAddress: "",
 			tenant: "",
 			system: "",
@@ -1167,7 +1166,6 @@ function App() {
 
 	function getEmptyCostForm() {
 		return {
-			
 			shortAddress: "",
 			system: "",
 			employee: "",
@@ -1184,7 +1182,7 @@ function App() {
 			tool: "",
 			inventoryNumber: "",
 			brand: "",
-			
+
 			shortAddress: "",
 			arrivalDate: "",
 			callStatus: "",
@@ -1197,7 +1195,7 @@ function App() {
 			executionDate: "",
 			engineer: "",
 			requestType: "",
-			
+
 			shortAddress: "",
 			system: "",
 			request: "",
@@ -1212,7 +1210,7 @@ function App() {
 			deadline: "",
 			status: BUY_STATUS.ORDERED,
 			contractNumber: "",
-			
+
 			objectId: null,
 			shortAddress: "",
 			payer: "",
@@ -1231,7 +1229,7 @@ function App() {
 			purchaseStatus: "",
 			callStatus: "",
 			thisStatus: "0",
-			
+
 			objectId: null,
 			shortAddress: "",
 			whatToTransport: "",
@@ -1247,7 +1245,7 @@ function App() {
 		return {
 			requestDate: "",
 			contractNumber: "",
-			
+
 			shortAddress: "",
 			payer: "",
 			whatToBuy: "",
@@ -1262,7 +1260,7 @@ function App() {
 			contractNumber: "",
 			fullAddress: "",
 			shortAddress: "",
-			
+
 			objectId: null,
 			tenant: "",
 			systemId: null,
@@ -1278,7 +1276,7 @@ function App() {
 		return {
 			name: "",
 			phone: "",
-			
+
 			shortAddress: "",
 			position: "",
 			email: "",
@@ -2462,7 +2460,6 @@ function App() {
 			systemName: "",
 			systemType: "",
 			quantity: "",
-			
 		});
 		setIsTimeSystemModalOpen(false);
 	};
@@ -6932,7 +6929,7 @@ function App() {
 			setWishForm({
 				title: "",
 				description: "",
-				
+				objectName: "",
 				status: "new",
 				priority: "normal",
 				files: [],
@@ -7050,7 +7047,7 @@ function App() {
 			setWishForm({
 				title: wish.title || "",
 				description: wish.description || "",
-				
+				objectName: wish.objectName || "",
 				status: wish.status || "new",
 				priority: wish.priority || "normal",
 				files: wish.files || [],
@@ -7131,10 +7128,10 @@ function App() {
 					<div className="wish-form-container">
 						<h2>{editingWish ? "Редактирование" : "Новая заметка"}</h2>
 						<div className="form-section">
-							<div className="form-group">
-								<label>Заголовок *</label>
-								<input
-									type="text"
+								<div className="form-group">
+									<label>Заголовок *</label>
+									<input
+										type="text"
 									value={wishForm.title}
 									onChange={(e) =>
 										setWishForm({ ...wishForm, title: e.target.value })
@@ -7142,6 +7139,16 @@ function App() {
 									placeholder="Например: Правки по проекту"
 								/>
 							</div>
+								{editingWish && editingWish.objectName && (
+								<div className="form-group">
+								<label>Объект</label>
+									<input
+										type="text"
+										value={wishForm.objectName || ""}
+										disabled
+									/>
+								</div>
+							)}
 							<div className="form-group">
 								<label>Описание</label>
 								<textarea
@@ -7299,7 +7306,10 @@ function App() {
 									</div>
 								</div>
 								<h3>{wish.title}</h3>
-								{wish.description && (
+									{wish.objectName && (
+										<div className="wish-meta">📍 {wish.objectName}</div>
+									)}
+									{wish.description && (
 									<div className="wish-desc">{wish.description}</div>
 								)}
 								{wish.files && wish.files.length > 0 && (
